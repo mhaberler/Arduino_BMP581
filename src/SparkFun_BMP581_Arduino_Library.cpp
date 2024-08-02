@@ -69,6 +69,15 @@ int8_t BMP581::beginSPI(uint8_t csPin, uint32_t clockFrequency)
 
 int8_t BMP581::init()
 {
+    /**
+     * After power up of the BMP581, it is available after t_powerup. 
+     * The host should not initiate any communication with the BMP581 before.
+     * Depending on the interface configuration, a dummy read should be the first access to the device (see 4.1).
+     * It is recommended that the host checks the following status registers after a power-up:
+     *   read out the CHIP_ID register and check that it is not all 0
+     *   read out the STATUS register and check that status_nvm_rdy==1, status_nvm_err == 0
+     **/
+
     // Variable to track errors returned by API calls
     int8_t err = BMP5_OK;
 
@@ -82,15 +91,26 @@ int8_t BMP581::init()
     sensor.delay_us = usDelay;
     sensor.intf_ptr = &interfaceData;
 
-    // Reset the sensor
-    err = bmp5_soft_reset(&sensor);
-    if(err != BMP5_OK)
-    {
-        return err;
-    }
+    // There is issue with reading NVM data after powerup
 
-    // Initialize the sensor
-    return bmp5_init(&sensor);
+    // bmp5_init: initialize the sensor
+    //  - dummy read (first access to the device after power on to switch to SPI mode)
+    //  - reads chip ID
+    //  - power up check
+    //    - if not BMP5_INT_NVM_RDY or if BMP5_INT_NVM_ERR we have power up error
+    //  - validate chip id
+    err = bmp5_init(&sensor);
+
+    if(err != BMP5_OK) {           
+        // Reset the sensor
+        delay(100);
+        err = bmp5_soft_reset(&sensor);
+        if(err != BMP5_OK) { return err; }
+        delay(100);
+        err = bmp5_init(&sensor);
+        if(err != BMP5_OK) { return err; }
+    }
+    return err;
 }
 
 int8_t BMP581::setMode(bmp5_powermode mode)
