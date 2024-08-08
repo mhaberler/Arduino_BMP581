@@ -91,27 +91,92 @@ int8_t BMP581::init()
     sensor.delay_us = usDelay;
     sensor.intf_ptr = &interfaceData;
 
-    // There is issue with reading NVM data after powerup
+    // There is issue with power up
+    //
+    // The BMB5 api functions for soft reset and power mode check are not working as expected.
+    // Also see: https://community.bosch-sensortec.com/t5/MEMS-sensors-forum/BMP581-Interrupt-Status-POR-Soft-Reset-bit-only-set-by-manual/m-p/77683#M14905
+    // This is proposed solution circumventing the BMP5 api function bmp5_init()
 
-    // bmp5_init: initialize the sensor
-    //  - dummy read (first access to the device after power on to switch to SPI mode)
-    //  - reads chip ID
-    //  - power up check
-    //    - if not BMP5_INT_NVM_RDY or if BMP5_INT_NVM_ERR we have power up error
-    //  - validate chip id
-    err = bmp5_init(&sensor);
-
-    if(err != BMP5_OK) {           
-        // Reset the sensor
-        delay(100);
-        err = bmp5_soft_reset(&sensor);
-        if(err != BMP5_OK) { return err; }
-        delay(100);
-        err = bmp5_init(&sensor);
-        if(err != BMP5_OK) { return err; }
+    // Reset the sensor
+    err = bmp5_soft_reset(&sensor);
+    if(err != BMP5_OK)
+    {
+        return err;
     }
-    return err;
+
+    // // Initialize the sensor
+    // return bmp5_init(&sensor);
+
+    // // Dummy read; this switches the sensor interface to SPI mode if needed
+    // uint8_t reg_data = 0;
+    // err = readRegisters(BMP5_REG_CHIP_ID, &reg_data, 1, &sensor);
+    // if (err != BMP5_OK) {
+    //     Serial.print("chip id reg read error: ");
+    //     Serial.println(err);
+    //     return err;
+    // }
+    // Serial.print("Dummy read chip id: ");
+    // Serial.println(reg_data);
+
+    // // Soft reset of sensor, this is setting POR_SOFTRESET_COMPLETE bit
+    // err = bmp5_soft_reset(&sensor); // this functions waits the required software reset time
+    // if (err != BMP5_OK) {
+    //     Serial.print("reg read error: ");
+    //     Serial.println(err);
+    //     return err;
+    // }
+    // // Serial.println("Soft reset delay");
+    // // delay(5000);
+
+    // // Check power up of the sensor
+
+    // uint8_t chip_id = 0;
+    // uint8_t nvm_status;
+    // uint8_t por_status;
+    
+    // //   Read chip id for real
+    // err = readRegisters(BMP5_REG_CHIP_ID, &chip_id, 1, &sensor);
+    // Serial.print("read chip id: ");
+    // Serial.println(chip_id);
+    // if (err != BMP5_OK) {
+    //     Serial.print("chip id reg read error: ");
+    //     Serial.println(err);
+    //     return err;
+    // }
+    // if (chip_id == 0 || (chip_id != BMP5_CHIP_ID_PRIM && chip_id != BMP5_CHIP_ID_SEC))
+    //     return BMP5_E_INVALID_CHIP_ID;
+
+    // //   Read NVM status
+    // err = readRegisters(BMP5_REG_STATUS, &nvm_status, 1, &sensor);
+    // Serial.print("NVM status: ");
+    // Serial.println(nvm_status);
+    // if (err != BMP5_OK) {
+    //     Serial.print("status reg read error: ");
+    //     Serial.println(err);
+    //     return err;
+    // }
+    // if (!(nvm_status & BMP5_INT_NVM_RDY)) {
+    //     return BMP5_E_NVM_NOT_READY;
+    // } 
+    // if (nvm_status & BMP5_INT_NVM_ERR) {
+    //     return BMP5_E_NVM_ERROR;
+    // }
+
+    // //   Read interrupt status
+    // err = bmp5_get_regs(BMP5_REG_INT_STATUS, &por_status, 1, &sensor);
+    // Serial.print("Power On status: ");
+    // Serial.println(por_status);
+    // if (err != BMP5_OK) {
+    //     Serial.print("por reg read error: ");
+    //     Serial.println(err);
+    //     return err;
+    // }
+    // if (!(por_status & BMP5_INT_ASSERTED_POR_SOFTRESET_COMPLETE))
+    //     return BMP5_E_POR_SOFTRESET;
+
+    // return BMP5_OK;
 }
+
 
 int8_t BMP581::setMode(bmp5_powermode mode)
 {

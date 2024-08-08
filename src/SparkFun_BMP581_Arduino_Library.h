@@ -14,6 +14,9 @@
 // Generic error code for invalid settings
 #define BMP5_E_INVALID_SETTING (BMP5_E_NVM_NOT_READY-1)
 
+// Additional Error Codes
+#define BMP5_E_NVM_ERROR  (BMP5_E_NVM_NOT_READY-2)
+
 // Struct to hold data about the communication interface being used (I2C or SPI)
 struct BMP581_InterfaceData
 {
@@ -93,7 +96,7 @@ class BMP581
         // NVM control
         int8_t readNVM(uint8_t addr, uint16_t* data);
         int8_t writeNVM(uint8_t addr, uint16_t data);
-
+        
     private:
         // Sensor initialization, after communication interface has been selected
         int8_t begin();
