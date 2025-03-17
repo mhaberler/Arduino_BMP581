@@ -174,7 +174,7 @@ int8_t BMP581::init()
     // if (!(por_status & BMP5_INT_ASSERTED_POR_SOFTRESET_COMPLETE))
     //     return BMP5_E_POR_SOFTRESET;
 
-    // return BMP5_OK;
+    return BMP5_OK;
 }
 
 
